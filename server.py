@@ -673,6 +673,15 @@ def debug_canon():
     return jsonify({"canon_ok": True, "hash": h})
 
 
+@app.route("/debug-groq", methods=["GET"])
+def debug_groq():
+    try:
+        result = call_groq([{"packageId": "test1", "text": "Invoice ABC for 100 INR. [REF-1] Fully paid and matched."}])
+        return jsonify({"groq_ok": True, "result": result})
+    except Exception as e:
+        return jsonify({"groq_ok": False, "error": str(e), "error_type": type(e).__name__})
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
