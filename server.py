@@ -134,14 +134,16 @@ def error_response(status, code, message="Request could not be processed."):
 
 
 def check_protocol_headers():
-    """Returns an error Response if version/media headers are invalid, else None."""
+    """Returns an error Response if the version header is invalid, else None.
+
+    Per the A2A 1.0 spec (Section 11.1), Content-Type: application/a2a+json
+    is a SHOULD for requests, not a MUST - so we do not reject requests based
+    on the incoming Content-Type header. We always respond with the correct
+    media type ourselves. A2A-Version mismatch is the one header condition
+    the spec explicitly maps to a 400 (VersionNotSupportedError)."""
     version = (request.headers.get("A2A-Version") or "").strip()
     if version != "1.0":
-        return error_response(400, "UNSUPPORTED_VERSION", "A2A-Version must be 1.0.")
-    if request.method == "POST":
-        content_type = (request.headers.get("Content-Type") or "").split(";")[0].strip().lower()
-        if content_type != A2A_MEDIA_TYPE:
-            return error_response(400, "UNSUPPORTED_MEDIA_TYPE", f"Content-Type must be {A2A_MEDIA_TYPE}.")
+        return error_response(400, "VERSION_NOT_SUPPORTED", "A2A-Version must be 1.0.")
     return None
 
 
@@ -475,7 +477,12 @@ def handle_initial_message(principal, message, message_id, this_hash, dedup_key)
             "mediaType": PROPOSALS_MEDIA_TYPE,
             "data": {"batchId": batch_id, "proposals": proposals},
         }
-        task["artifacts"] = [proposals_part]
+        proposals_artifact = {
+            "artifactId": "artifact_" + uuid.uuid4().hex,
+            "name": "invoice-action-proposals",
+            "parts": [proposals_part],
+        }
+        task["artifacts"] = [proposals_artifact]
         task["status"] = {"state": STATE_INPUT_REQUIRED}
 
         response_payload = {"task": public_task_view(task)}
@@ -560,7 +567,12 @@ def handle_continuation_message(principal, message, message_id, this_hash, dedup
             "mediaType": RECEIPTS_MEDIA_TYPE,
             "data": {"batchId": batch_id, "executions": executions},
         }
-        task["artifacts"] = task["artifacts"] + [receipts_part]
+        receipts_artifact = {
+            "artifactId": "artifact_" + uuid.uuid4().hex,
+            "name": "invoice-action-receipts",
+            "parts": [receipts_part],
+        }
+        task["artifacts"] = task["artifacts"] + [receipts_artifact]
         task["history"] = task["history"] + [message]
         task["status"] = {"state": STATE_COMPLETED}
 
