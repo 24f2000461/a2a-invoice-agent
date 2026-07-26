@@ -230,7 +230,10 @@ def build_prompt(packages):
         "{\n"
         '  "packageId": "<copy from input>",\n'
         '  "action": "<one of the five actions above>",\n'
-        '  "vendorName": "...", "invoiceNumber": "...", "amountMinor": <integer>, "currency": "...",\n'
+        '  "vendorName": "...", "invoiceNumber": "...", '
+        '"amountMinor": <integer, in the MINOR currency unit - e.g. paise for INR, cents for USD - '
+        'so an invoice stated as "INR 500.00" or "INR 500" is amountMinor 50000, NOT 500>, '
+        '"currency": "...",\n'
         '  "evidenceRefs": ["[REF-x]", "[REF-y]", "[REF-z]"],\n'
         '  "rationale": "60-1500 characters, names the action and cites at least two of the evidence refs"\n'
         "}\n\n"
