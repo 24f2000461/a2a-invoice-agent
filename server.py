@@ -673,11 +673,19 @@ def debug_canon():
     return jsonify({"canon_ok": True, "hash": h})
 
 
-@app.route("/debug-groq", methods=["GET"])
+@app.route("/debug-groq", methods=["GET", "POST"])
 def debug_groq():
     try:
-        result = call_groq([{"packageId": "test1", "text": "Invoice ABC for 100 INR. [REF-1] Fully paid and matched."}])
-        return jsonify({"groq_ok": True, "result": result})
+        if request.method == "POST":
+            body = request.get_json(force=True)
+            packages = body.get("packages", [])
+        else:
+            packages = [{"packageId": "test1", "text": "Invoice ABC for 100 INR. [REF-1] Fully paid and matched."}]
+        import time as _time
+        t0 = _time.time()
+        result = call_groq(packages)
+        elapsed = _time.time() - t0
+        return jsonify({"groq_ok": True, "elapsed_seconds": elapsed, "result_count": len(result)})
     except Exception as e:
         return jsonify({"groq_ok": False, "error": str(e), "error_type": type(e).__name__})
 
