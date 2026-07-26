@@ -658,6 +658,21 @@ def debug_echo():
     return jsonify({"received_bytes": len(raw)})
 
 
+@app.route("/debug-json-echo", methods=["POST"])
+def debug_json_echo():
+    body = request.get_json(force=True)
+    packages = ((body.get("message") or {}).get("parts") or [{}])[0].get("data", {}).get("packages", [])
+    return jsonify({"parsed_ok": True, "package_count": len(packages)})
+
+
+@app.route("/debug-canon", methods=["POST"])
+def debug_canon():
+    body = request.get_json(force=True)
+    message = body.get("message") or {}
+    h = message_hash(message)
+    return jsonify({"canon_ok": True, "hash": h})
+
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
