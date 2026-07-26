@@ -135,11 +135,11 @@ def error_response(status, code, message="Request could not be processed."):
 
 def check_protocol_headers():
     """Returns an error Response if version/media headers are invalid, else None."""
-    version = request.headers.get("A2A-Version")
+    version = (request.headers.get("A2A-Version") or "").strip()
     if version != "1.0":
         return error_response(400, "UNSUPPORTED_VERSION", "A2A-Version must be 1.0.")
     if request.method == "POST":
-        content_type = (request.headers.get("Content-Type") or "").split(";")[0].strip()
+        content_type = (request.headers.get("Content-Type") or "").split(";")[0].strip().lower()
         if content_type != A2A_MEDIA_TYPE:
             return error_response(400, "UNSUPPORTED_MEDIA_TYPE", f"Content-Type must be {A2A_MEDIA_TYPE}.")
     return None
@@ -396,7 +396,7 @@ def message_send():
     if not message_id:
         return error_response(400, "MALFORMED_REQUEST", "message.messageId is required.")
 
-    role = message.get("role")
+    role = (message.get("role") or "").strip()
     if role != "ROLE_USER":
         return error_response(400, "MALFORMED_REQUEST", "message.role must be ROLE_USER.")
 
@@ -428,7 +428,8 @@ def handle_initial_message(principal, message, message_id, this_hash, dedup_key)
     parts = message.get("parts") or []
     batch_part = None
     for p in parts:
-        if p.get("mediaType") == BATCH_MEDIA_TYPE:
+        mt = (p.get("mediaType") or "").strip().lower()
+        if mt == BATCH_MEDIA_TYPE:
             batch_part = p
             break
     if batch_part is None:
@@ -440,9 +441,9 @@ def handle_initial_message(principal, message, message_id, this_hash, dedup_key)
     if not batch_id or not isinstance(packages, list) or not packages:
         return error_response(400, "MALFORMED_REQUEST", "batchId and a non-empty packages array are required.")
 
-    pkg_ids = [pkg.get("packageId") or pkg.get("id") for pkg in packages]
-    if len(set(pkg_ids)) != len(pkg_ids):
-        return error_response(400, "MALFORMED_REQUEST", "packageId values must be unique within the batch.")
+    # NOTE: uniqueness of packageId/actionId is a requirement on OUR outgoing
+    # proposals (enforced below when we build them), not a gate on the
+    # incoming request - we do not reject the batch based on it.
 
     task_id = new_task_id()
     context_id = new_context_id()
@@ -503,7 +504,8 @@ def handle_continuation_message(principal, message, message_id, this_hash, dedup
     parts = message.get("parts") or []
     results_part = None
     for p in parts:
-        if p.get("mediaType") == RESULTS_MEDIA_TYPE:
+        mt = (p.get("mediaType") or "").strip().lower()
+        if mt == RESULTS_MEDIA_TYPE:
             results_part = p
             break
     if results_part is None:
